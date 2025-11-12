@@ -38,7 +38,7 @@ CITIES = [
 
 # ---------- Mock search endpoint ----------
 @app.post("/search", response_model=SearchResponse)
-def search(req: SearchRequest):
+def search(req: SearchRequest): 
     """Return a random travel city for frontend-backend communication testing."""
     choice = random.choice(CITIES)
 
