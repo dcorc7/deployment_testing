@@ -10,8 +10,8 @@ st.title("🌍 Simple Deployment Test")
 # ---------------- Backend config ----------------
 API_URL = os.getenv("API_URL", "https://deployment-testing-0v1x.onrender.com")
 
-def _api_search(payload):
-    r = requests.post(f"{API_URL}/search", json=payload, timeout=25)
+def _api_search():
+    r = requests.post(f"{API_URL}/search", timeout=25)
     r.raise_for_status()
     return r.json()
 
@@ -24,9 +24,8 @@ if "results" not in st.session_state:
     st.session_state["results"] = None
 
 if run:
-    payload = {"query": "paris"}  # example query
     try:
-        results = _api_search(payload)
+        results = _api_search()
         st.session_state["results"] = results
         st.success("✅ Search complete!")
     except Exception as e:

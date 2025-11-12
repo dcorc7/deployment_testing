@@ -20,12 +20,9 @@ class Result(BaseModel):
     why: Dict[str, Any] = {}
 
 class SearchResponse(BaseModel):
-    query: str
+    query: str | None = None
     params: Dict[str, Any]
     results: List[Result]
-
-class SearchRequest(BaseModel):
-    query: str
 
 # ---------- Dummy corpus ----------
 CITIES = [
@@ -38,7 +35,7 @@ CITIES = [
 
 # ---------- Mock search endpoint ----------
 @app.post("/search", response_model=SearchResponse)
-def search(req: SearchRequest): 
+def search():
     """Return a random travel city for frontend-backend communication testing."""
     choice = random.choice(CITIES)
 
@@ -57,7 +54,12 @@ def search(req: SearchRequest):
     )
 
     return SearchResponse(
-        query=req.query,
+        query=None,
         params={"mode": "mock"},
         results=[result],
     )
+
+# Optional health check
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "Render backend is running!"}
