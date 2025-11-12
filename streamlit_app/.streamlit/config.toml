@@ -1,0 +1,17 @@
+[client]
+toolbarMode = "viewer"
+
+[theme]
+base="light"
+primaryColor="#6366f1"
+backgroundColor="#ffffff"
+secondaryBackgroundColor="#f6f7fb"
+textColor="#111827"
+font="sans serif"
+
+
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = false

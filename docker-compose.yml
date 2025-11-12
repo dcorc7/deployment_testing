@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:16
+    container_name: lsh_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lsh}
+      POSTGRES_USER: ${POSTGRES_USER:-lsh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lsh}
+    # Change host port if 5432 is busy locally
+    ports:
+      - "5434:5432"          # host:container (use 5432:5432 if you prefer)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: lsh_api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-lsh}:${POSTGRES_PASSWORD:-lsh}@db:5432/${POSTGRES_DB:-lsh}
+      # If you didn’t set PYTHONPATH in the image, uncomment next line:
+      # PYTHONPATH: /app/src
+    ports:
+      - "8081:8000"          # host:container
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./src:/app/src:rw    # hot-reload API code in dev
+      # - ./configs:/app/configs:rw   # keep only if this dir exists & you need it
+    # Live reload for local dev
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: unless-stopped
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: streamlit_app/Dockerfile 
+    container_name: lsh_streamlit
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      API_URL: http://api:8000
+      # Optional: silence usage ping
+      STREAMLIT_BROWSER_GATHERUSAGESTATS: "false"
+    ports:
+      - "8501:8501"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./streamlit_app:/app/streamlit_app:rw   # hot-reload Streamlit UI
+      - ./assets:/app/streamlit_app/assets:rw   # only if you actually store assets here
+    restart: unless-stopped
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    depends_on:
+      api:
+        condition: service_started
+    command: ["pytest", "-q"]
+    profiles: ["test"]  # run with: docker compose --profile test up --build
+
+volumes:
+  pgdata:
